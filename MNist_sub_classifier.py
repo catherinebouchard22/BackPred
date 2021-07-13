@@ -9,7 +9,9 @@ import torch.nn.functional as F
 
 # https://nextjournal.com/gkoehler/pytorch-mnist
 
-transform = transforms.Compose([transforms.ToTensor(),
+transform = transforms.Compose([transforms.Resize((4,4)),
+							  transforms.Resize((28,28)),
+							  transforms.ToTensor(),
                               transforms.Normalize((0.5,), (0.5,)),
                               ])
 
@@ -25,25 +27,19 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         self.conv2_drop = nn.Dropout2d()
-        #self.fc1 = nn.Linear(320, 50)
-        #self.fc2 = nn.Linear(50, 10)
         self.fc1 = nn.Conv2d(20, 10, kernel_size=4)
         self.fc2 = nn.Conv2d(10, 10, kernel_size=1)
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        #x = x.view(-1, 320)
         x = F.relu(self.fc1(x))
-        #x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x)
 
 model = Net()
 
 criterion = nn.NLLLoss()
-images, labels = next(iter(trainloader))
-images = images.view(images.shape[0], -1)
 
 optimizer = optim.SGD(model.parameters(), lr=0.003, momentum=0.9)
 time0 = time()
@@ -56,7 +52,6 @@ if gpu:
 for e in range(epochs):
 	running_loss = 0
 	for images, labels in trainloader:
-
 		if gpu:
 			images = images.cuda()
 			labels = labels.cuda()
@@ -75,7 +70,7 @@ for e in range(epochs):
 
 		running_loss += loss.item()
 
-		torch.save(model.state_dict(), './mnist_{}_model.pth'.format(e)) 
+		torch.save(model.state_dict(), './mnist_{}_4x4_model.pth'.format(e)) 
 	else:
 		print("Epoch {} - Training loss: {}".format(e, running_loss/len(trainloader)))
 
