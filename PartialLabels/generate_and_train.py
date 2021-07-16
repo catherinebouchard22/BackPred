@@ -14,11 +14,19 @@ class Net(nn.Module):
 
         self.cnn_layers = nn.Sequential(
             # Defining a 2D convolution layer
-            nn.Conv2d(1, 4, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(4),
+            nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(16),
             nn.ReLU(inplace=True),
-            # Defining another 2D convolution layer
-            nn.Conv2d(4, 1, kernel_size=3, stride=1, padding=1),
+
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            
+            nn.Conv2d(32, 16, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(inplace=True),
+            
+            nn.Conv2d(16, 1, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(1),
             nn.ReLU(inplace=True),
         )
@@ -41,18 +49,19 @@ if gpu:
     model.cuda()
     
 # Probability ofr a cell to be labeled
-probability_of_label = 1
+probability_of_label = 0.5
+running_loss = []
 
 for e in range(iterations+1):
-    running_loss = 0
-
+    if e % 1000 == 0:
+        print('{}/{}'.format(e, iterations))
     # xx and yy are 200x200 tables containing the x and y coordinates as values
     # mgrid is a mesh creation helper
     xx, yy = np.mgrid[:50, :50]
     images = np.zeros((50,50))
     labels = np.zeros((50,50))
 
-    N = np.random.randint(1,100)
+    N = np.random.randint(1,30)
 
     for i in range(N):
         x_center = np.random.randint(0,50)
@@ -73,7 +82,7 @@ for e in range(iterations+1):
             #labels[x_center-1:x_center+2, y_center] = 1
             #labels[x_center, y_center-1:y_center+2] = 1
 
-    images = images + np.random.poisson(size=(50,50))*0.05
+    images = images + np.random.poisson(size=(50,50))*0.02
     images = torch.tensor(images).unsqueeze(0).unsqueeze(0).type(torch.float)
     labels = torch.tensor(labels).unsqueeze(0).unsqueeze(0).type(torch.float)
 
@@ -93,14 +102,10 @@ for e in range(iterations+1):
     #And optimizes its weights here
     optimizer.step()
 
-plt.subplot(131)
-plt.imshow(images[0,0,:,:].detach().numpy(),cmap='inferno')
-plt.subplot(132)
-plt.imshow(labels[0,0,:,:].detach().numpy(),cmap='inferno')
-plt.subplot(133)
-plt.imshow(output[0,0,:,:].detach().numpy(),cmap='inferno')
-plt.show()
+    #Running loss
+    running_loss.append(loss.item())
 
-torch.save(model.state_dict(), './mnist_{}iterations_{}prob_model.pth'.format(e,probability_of_label)) 
+np.save('./cells_{}iterations_{}prob_model'.format(e,probability_of_label), running_loss) 
+torch.save(model.state_dict(), './cells_{}iterations_{}prob_model.pth'.format(e,probability_of_label)) 
 
 print("\nTraining Time (in minutes) =",(time()-time0)/60)
