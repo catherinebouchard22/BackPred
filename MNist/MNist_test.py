@@ -6,6 +6,7 @@ from time import time
 from torchvision import datasets, transforms
 from torch import nn, optim
 import torch.nn.functional as F
+from PIL import Image
 
 # Define network
 
@@ -28,20 +29,22 @@ class Net(nn.Module):
 model = Net()
 
 # Load trained weights
-model.load_state_dict(torch.load('mnist_14_model.pth'))
+model.load_state_dict(torch.load('mnist_14_model.pth', map_location='cpu'))
 
 # Load test image
-test_im = np.load('results/1.npy')
-test_im = torch.from_numpy(test_im).unsqueeze(0).unsqueeze(0)
-
-# Predict class for test_im
-pred = model(test_im)
+test_im = Image.open('mix31.png')
+#test_im = torch.from_numpy(test_im).unsqueeze(0).unsqueeze(0)
 
 # Over the whole validation dataset
 
 transform = transforms.Compose([transforms.ToTensor(),
                               transforms.Normalize((0.5,), (0.5,)),
                               ])
+
+# Predict class for test_im
+test_im = transform(test_im).unsqueeze(0)
+pred = model(test_im)
+print(pred)
 
 valset = datasets.MNIST('PATH_TO_STORE_TESTSET/MNIST', download=False, train=False, transform=transform)
 valloader = torch.utils.data.DataLoader(valset, batch_size=256, shuffle=True)
@@ -63,4 +66,4 @@ def test():
     val_loss, correct, len(valloader.dataset),
     100. * correct / len(valloader.dataset)))
 
-test()
+#test()
